@@ -1,0 +1,82 @@
+#include <reg52.h> 
+unsigned char tt;//定义一个PWM周期
+unsigned char pwm;//定义占空比控制变量
+unsigned int light;//亮度变化的状态
+unsigned int LED;// 灯光亮灭状态  
+sbit LED1=P2^0 ;//LED灯
+ 
+sbit k1=P1^0 ;// 按键
+ 
+ void delay(i) // 延时函数  
+ {
+  while(i--); 
+ }
+ 
+ void time0_init()
+ {
+  TMOD=0X02;//设置定时器工作模式2 自动重装初值
+  TH0=0x47;  //设置定时器初值，每隔0.2ms发起一次中断
+  TL0=0x47;
+  TR0=1;  //启动定时器
+  ET0=1;  //开启定时器0中断
+  EA=1;	  //开启总中断
+  tt=0;  //初始化周期计数值
+ }
+ 
+ void time0() interrupt 1
+ {
+    tt++; //周期计数值自加
+    if (pwm==tt) //
+	{
+     LED1=1;//点亮LED灯
+	}
+	 
+    if (tt==20)	 //当计数20次即20X0.2=4ms时，一个周期结束
+    {
+	 LED1=0;//关灯
+	 tt=0;// 重新开始PWM周期
+	}  
+ }
+ void main()
+{
+  k1=1;
+  LED1=0;
+  light=0;	   //初始化
+  time0_init(); // 定时器初始化
+    while(1)
+     {
+	  if(k1==0)	 //当按键按下
+	  {  
+		delay(20000);
+	   	if(k1!=0)	//判断为短按时
+		{
+		  TR0=!TR0;  //关闭定时器
+          ET0=!ET0;  //关闭定时器0中断
+          EA=!EA;	  //关闭总中断
+		  LED1=0;	//关灯
+		}
+	    if(k1==0)	//判断为长按时
+	     {
+		  light=!light; //灯光亮度状态取反
+		 }
+	    while(k1==0)   //一直长按
+	    {
+		 delay(5000);
+		 if(light==1)//当亮度状态为1时，灯光亮度逐渐变亮
+		  {
+		  if(pwm==20)
+		  pwm=20;
+		  else
+		  pwm++;	//亮度变亮
+		  }
+		 if(light==0)  //当亮度状态为0时，灯光亮度逐渐变暗
+		 {
+		  if(pwm==1)
+		  pwm=1;
+		  else
+		  pwm--;	//亮度变暗
+		 }  
+		} 
+	   }
+	  }
+}
